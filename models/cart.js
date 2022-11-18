@@ -15,18 +15,19 @@ const CartSchema = new Schema({
   item: {
     packageId: {
       type: Schema.Types.ObjectId,
-      ref:'Service',
+      ref: "Service",
       required: true,
     },
-      quantity: {
+    description: {
+      type: String,
+    },
+    rating: {
       type: Number,
+      default: 5,
     },
     price: {
       type: Number,
     },
   },
-  total:{
-    type:Number
-  }
- });
+});
 module.exports = model("cart", CartSchema);

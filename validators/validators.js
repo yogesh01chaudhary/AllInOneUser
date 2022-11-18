@@ -22,8 +22,9 @@ exports.profileSchema = Joi.object()
     lastName: Joi.string().min(3).required(),
     dateOfBirth: Joi.date().less("now").required(),
     gender: Joi.string().valid("male", "female").required(),
-       city: Joi.string().required(),
+    city: Joi.string().required(),
     pincode: Joi.number().min(100000).max(999999).required(),
+    email: Joi.string().email().required(),
   })
   .required();
 exports.emailSchema = Joi.object()

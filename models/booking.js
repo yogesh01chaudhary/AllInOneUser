@@ -18,9 +18,6 @@ const BookingSchema = new Schema({
       ref: "Service",
       required: true,
     },
-    quantity: {
-      type: Number,
-    },
     price: {
       type: Number,
     },
@@ -28,7 +25,6 @@ const BookingSchema = new Schema({
   total: {
     type: Number,
   },
-
   vendor: {
     type: Schema.Types.ObjectId,
     ref: "Vendor",
@@ -41,14 +37,18 @@ const BookingSchema = new Schema({
       type: String,
     },
   },
-  status: {
+  bookingStatus: {
     type: String,
-    enum: ["Booked", "Pending", "Cancelled", "Completed"],
+    enum: ["Confirmed", "Pending", "Cancelled", "Completed"],
     default: "Pending",
   },
-  payBy: {
+  payby: {
     type: String,
     enum: ["online", "cash"],
+  },
+  paid: {
+    type: Boolean,
+    default: false,
   },
   transactionId: {
     type: String,

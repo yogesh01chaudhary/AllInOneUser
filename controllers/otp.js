@@ -1,8 +1,11 @@
 const OTP = require("../models/otp");
-// const {encode} = require("../middlewares/crypt")
 var otpGenerator = require("otp-generator");
 const nodemailer = require("nodemailer");
 const { encode } = require("../middlewares/crypt");
+const Booking = require("../models/booking");
+const Joi = require("joi");
+const mongoose = require("mongoose");
+const axios = require("axios");
 
 // To add minutes to the current time
 function AddMinutesToDate(date, minutes) {
@@ -45,6 +48,21 @@ exports.sendOTPToMail = async (req, res) => {
       message: "OTP sent to user",
       otp_id: otp_instance.id,
     };
+
+    let bufferObj = Buffer.from(details.toString(), "utf8");
+
+    // Encoding into base64
+    let base64String = bufferObj.toString("base64");
+
+    // Printing the base64 encoded string
+    console.log("The encoded base64 string is:", base64String);
+    let bufferObj2 = Buffer.from(base64String, "base64");
+
+    // Decoding base64 into String
+    let string = bufferObj2.toString("utf8");
+
+    // Printing the base64 decoded string
+    console.log("The Decoded base64 string is:", string);
 
     // Encrypt the details object
     // const encoded = await encode(JSON.stringify(details));
@@ -116,58 +134,6 @@ exports.sendOTPToMail = async (req, res) => {
     const response = { Status: "Failure", Details: err.message };
     return res.status(400).send(response);
   }
-};
-
-// Function to Compares dates (expiration time and current time in our case)
-var dates = {
-  convert: function (d) {
-    // Converts the date in d to a date-object. The input can be:
-    //   a date object: returned without modification
-    //  an array      : Interpreted as [year,month,day]. NOTE: month is 0-11.
-    //   a number     : Interpreted as number of milliseconds
-    //                  since 1 Jan 1970 (a timestamp)
-    //   a string     : Any format supported by the javascript engine, like
-    //                  "YYYY/MM/DD", "MM/DD/YYYY", "Jan 31 2009" etc.
-    //  an object     : Interpreted as an object with year, month and date
-    //                  attributes.  **NOTE** month is 0-11.
-    return d.constructor === Date
-      ? d
-      : d.constructor === Array
-      ? new Date(d[0], d[1], d[2])
-      : d.constructor === Number
-      ? new Date(d)
-      : d.constructor === String
-      ? new Date(d)
-      : typeof d === "object"
-      ? new Date(d.year, d.month, d.date)
-      : NaN;
-  },
-  compare: function (a, b) {
-    // Compare two dates (could be of any type supported by the convert
-    // function above) and returns:
-    //  -1 : if a < b
-    //   0 : if a = b
-    //   1 : if a > b
-    // NaN : if a or b is an illegal date
-    // NOTE: The code inside isFinite does an assignment (=).
-    return isFinite((a = this.convert(a).valueOf())) &&
-      isFinite((b = this.convert(b).valueOf()))
-      ? (a > b) - (a < b)
-      : NaN;
-  },
-  inRange: function (d, start, end) {
-    // Checks if date in d is between dates in start and end.
-    // Returns a boolean or NaN:
-    //    true  : if d is between start and end (inclusive)
-    //    false : if d is before start or after end
-    //    NaN   : if one or more of the dates is illegal.
-    // NOTE: The code inside isFinite does an assignment (=).
-    return isFinite((d = this.convert(d).valueOf())) &&
-      isFinite((start = this.convert(start).valueOf())) &&
-      isFinite((end = this.convert(end).valueOf()))
-      ? start <= d && d <= end
-      : NaN;
-  },
 };
 
 exports.verifyOTP = async (req, res) => {
@@ -296,27 +262,76 @@ exports.phoneOTP = async (req, res) => {
     );
 
     //Create OTP instance in DB
-    // let otp_instance = await OTP.find({ phone: phone_number });
-    // if (otp_instance) {
-    // }
-    // if (otp_instance.length == 0) {
-    // }
-    // otp_instance = otp_instance[0];
-
-    let otp_instance = await OTP.create({
-      otp: otp,
-      expiredAt: expiration_time,
-      phone: phone_number,
-    });
+    let otp_instance = await OTP.find({ phone: phone_number });
+    if (!otp_instance) {
+      return res
+        .status(400)
+        .send({ success: false, message: "Something went wrong" });
+    }
+    if (otp_instance.length === 0) {
+      otp_instance = new OTP({
+        otp: otp,
+        expiredAt: expiration_time,
+        phone: phone_number,
+      });
+      otp_instance = await otp_instance.save();
+      if (!otp_instance) {
+        return res
+          .status(400)
+          .send({ sucess: false, message: "Something went wrong" });
+      }
+      //   var details = {
+      //     timestamp: now,
+      //     check: phone_number,
+      //     success: true,
+      //     message: "OTP sent to user",
+      //     otp_id: otp_instance.id,
+      //   };
+      if (type) {
+        if (type == "VERIFICATION") {
+          const message = require("../templates/sms/phone_verification");
+          phone_message = message(otp);
+        } else if (type == "FORGET") {
+          const message = require("../templates/sms/phone_forget");
+          phone_message = message(otp);
+        } else if (type == "2FA") {
+          const message = require("../templates/sms/phone_2FA");
+          phone_message = message(otp);
+        } else {
+          const response = {
+            Status: "Failure",
+            Details: "Incorrect Type Provided",
+          };
+          return res.status(400).send(response);
+        }
+      }
+      var params = {
+        Message: phone_message,
+        PhoneNumber: phone_number,
+      };
+      return res
+        .status(200)
+        .send({ success: true, params: params, instance: otp_instance });
+    }
+    otp_instance = otp_instance[0];
+    otp_instance = await OTP.findByIdAndUpdate(
+      otp_instance._id,
+      {
+        otp: otp,
+        expiredAt: expiration_time,
+        verified: false,
+      },
+      { new: true }
+    );
 
     // Create details object containing the phone number and otp id
-    var details = {
-      timestamp: now,
-      check: phone_number,
-      success: true,
-      message: "OTP sent to user",
-      otp_id: otp_instance.id,
-    };
+    // var details = {
+    //   timestamp: now,
+    //   check: phone_number,
+    //   success: true,
+    //   message: "OTP sent to user",
+    //   otp_id: otp_instance.id,
+    // };
 
     // Encrypt the details object
     //   const encoded= await encode(JSON.stringify(details))
@@ -369,19 +384,18 @@ exports.phoneOTP = async (req, res) => {
 };
 
 exports.verifyPhoneOTP = async (req, res) => {
-  const { phone, otp } = req.body;
-
   try {
     var currentdate = new Date();
+    console.log(req.body);
     const { verification_key, otp, check } = req.body;
 
-    if (!verification_key) {
-      const response = {
-        Status: "Failure",
-        Details: "Verification Key not provided",
-      };
-      return res.status(400).send(response);
-    }
+    // if (!verification_key) {
+    //   const response = {
+    //     Status: "Failure",
+    //     Details: "Verification Key not provided",
+    //   };
+    //   return res.status(400).send(response);
+    // }
     if (!otp) {
       const response = { Status: "Failure", Details: "OTP not Provided" };
       return res.status(400).send(response);
@@ -402,20 +416,28 @@ exports.verifyPhoneOTP = async (req, res) => {
     // }
 
     // var obj = JSON.parse(decoded);
-    let obj = verification_key;
-    const check_obj = obj.check;
+    // let obj = verification_key;
+    // const check_obj = obj.check;
 
-    // Check if the OTP was meant for the same email or phone number for which it is being verified
-    if (check_obj != check) {
-      const response = {
-        Status: "Failure",
-        Details: "OTP was not sent to this particular email or phone number",
-      };
-      return res.status(400).send(response);
+    // // Check if the OTP was meant for the same email or phone number for which it is being verified
+    // if (check_obj != check) {
+    //   const response = {
+    //     Status: "Failure",
+    //     Details: "OTP was not sent to this particular email or phone number",
+    //   };
+    //   return res.status(400).send(response);
+    // }
+
+    let otp_instance = await OTP.find({ phone: check });
+    if (!otp_instance) {
+      return res
+        .status(400)
+        .send({ success: false, message: "Something went wrong" });
     }
-
-    let otp_instance = await OTP.findById(obj.otp_id);
-    console.log(otp_instance);
+    if (otp_instance.length === 0) {
+      return res.status(404).send({ success: false, message: "No Data Found" });
+    }
+    otp_instance = otp_instance[0];
 
     //Check if OTP is available in the DB
     if (otp_instance != null) {
@@ -453,5 +475,134 @@ exports.verifyPhoneOTP = async (req, res) => {
   } catch (err) {
     const response = { Status: "Failure", Details: err.message };
     return res.status(400).send(response);
+  }
+};
+
+// **********************************2FA*********************************************************************************//
+exports.sendOTPDetails = async (req, res) => {
+  try {
+    const { body } = req;
+    const { error } = Joi.object()
+      .keys({ bookingId: Joi.string().required() })
+      .required()
+      .validate(body);
+    if (error) {
+      console.log(error);
+      return res
+        .status(400)
+        .send({ success: false, error: error.details[0].message });
+    }
+    let matchQuery = {
+      $match: {
+        $and: [{ _id: mongoose.Types.ObjectId(body.bookingId) }],
+      },
+    };
+
+    let data = await Booking.aggregate([
+      {
+        $facet: {
+          totalData: [
+            matchQuery,
+            {
+              $lookup: {
+                from: "services",
+                localField: "service",
+                foreignField: "_id",
+                as: "serviceData",
+              },
+            },
+
+            {
+              $lookup: {
+                from: "users",
+                localField: "userId",
+                foreignField: "_id",
+                as: "userData",
+              },
+            },
+          ],
+          totalCount: [matchQuery, { $count: "count" }],
+        },
+      },
+    ]);
+
+    let result = data[0].totalData;
+    let count = data[0].totalCount;
+
+    if (result.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No Result",
+      });
+    }
+    result = result[0];
+    console.log(result);
+
+    console.log(process.env.OTP_API + result.userData[0].phone + "/AUTOGEN");
+    axios
+      .get(process.env.OTP_API + result.userData[0].phone + "/AUTOGEN")
+      .then(async (response) => {
+        let otp_instance = new OTP({
+          bookingId: body.bookingId,
+          phone: result.userData[0].phone,
+          otpDetails: response.data.Details,
+        });
+        otp_instance = await otp_instance.save();
+        return res.status(200).json({
+          message: "OTP sent successfully",
+          details: response.data.Details,
+          otp_instance,
+        });
+      })
+      .catch((er) => {
+        return res.status(500).json({ message: "Error", error: er.message });
+      });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ message: "Something went wrong", error: e.message });
+  }
+};
+
+exports.verifyOTPDetails = async (req, res) => {
+  try {
+    const { body } = req;
+    console.log(body);
+    const { error } = Joi.object()
+      .keys({ otpId: Joi.string().required(), otp: Joi.number().required() })
+      .required()
+      .validate(body);
+    if (error) {
+      console.log(error);
+      return res
+        .status(400)
+        .send({ success: false, error: error.details[0].message });
+    }
+
+    let data = await OTP.findById({_id:body.otpId});
+    if (!data) {
+      return res
+        .status(404)
+        .send({ success: false, message: "Data Not Found" });
+    }
+    console.log(data);
+    console.log(
+      process.env.OTP_API + "VERIFY/" + data.otpDetails + "/" + body.otp
+    );
+    axios
+      .get(process.env.OTP_API + "VERIFY/" + data.details + "/" + body.otp)
+      .then(async (response) => {
+        if (response.data.Details === "OTP Matched") {
+          return es.staus(200).send({ success: true, message: "OTP Matched" });
+        } else if (response.data.Details === "OTP Expired") {
+          return res.status(403).json({ message: "OTP Expired" });
+        }
+        return res.status(500).json({ message: "Something went wrong 1" });
+      })
+      .catch((error) => {
+        return res.status(500).json(error);
+      });
+  } catch (e) {
+    return res.status(500).json({ message: "Something went wrong" });
   }
 };

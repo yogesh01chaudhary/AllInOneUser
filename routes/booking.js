@@ -1,15 +1,29 @@
-const express=require("express");
-const { getBooking, getBookings, addBooking, payment, checkout, paymentVerify,  } = require("../controllers/booking");
+const express = require("express");
+const {
+  addBooking,
+  getBookingUser,
+  getBookingsUser,
+  getBookingAdmin,
+  getBookingsAdmin,
+  payment,
+  checkout,
+  paymentVerify,
+} = require("../controllers/booking");
 const { verifyToken } = require("../middlewares/auth");
-const router=express.Router()
+const router = express.Router();
 
-router.get("/booking/:id", getBooking);
-router.get("/booking", getBookings);
+//ADMIN
+router.get("/admin", getBookingsAdmin);
+router.get("/admin/:bookingId", getBookingAdmin);
 
-router.post("/booking", verifyToken, addBooking);
+//USER
+router.post("/", verifyToken, addBooking);
+router.get("/",verifyToken, getBookingsUser);
+router.get("/:bookingId",verifyToken, getBookingUser);
+
+//PAYMENT
 router.post("/payment", verifyToken, payment);
 router.post("/checkout", verifyToken, checkout);
-router.post("/paymentVerify", verifyToken,paymentVerify);
+router.post("/paymentVerify", verifyToken, paymentVerify);
 
-
-module.exports=router
+module.exports = router;

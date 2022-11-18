@@ -1,6 +1,14 @@
 const { Schema, model } = require("mongoose");
 const OTPSchema = new Schema(
   {
+    bookingId: {
+      type: Schema.Types.ObjectId,
+      ref: "booking",
+      required: true,
+    },
+    otpDetails: {
+      type: String,
+    },
     email: {
       type: String,
     },
@@ -15,6 +23,7 @@ const OTPSchema = new Schema(
     },
     verified: {
       type: Boolean,
+      default:false
     },
   },
   {

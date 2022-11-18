@@ -6,6 +6,7 @@ const Booking = require("../models/booking");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 
+// ***************************************USER********************************************************************************//
 // @desc add silver package to cart
 // @route POST cart/silver
 // @acess Private
@@ -67,9 +68,10 @@ exports.addToCartSilver = async (req, res) => {
       let cart = new Cart({
         userId: user._id,
         service: result[0]._id,
+        "item.description": package.description,
         "item.packageId": package._id,
-        "item.quantity": 1,
         "item.price": package.price,
+        // "item.rating":package.rating
       });
 
       cart = await cart.save();
@@ -177,9 +179,10 @@ exports.addToCartGold = async (req, res) => {
       let cart = new Cart({
         userId: user._id,
         service: result[0]._id,
+        "item.description": package.description,
         "item.packageId": package._id,
-        "item.quantity": 1,
         "item.price": package.price,
+        // "item.rating":package.rating
       });
 
       cart = await cart.save();
@@ -287,9 +290,10 @@ exports.addToCartPlatinum = async (req, res) => {
       let cart = new Cart({
         userId: user._id,
         service: result[0]._id,
+        "item.description": package.description,
         "item.packageId": package._id,
-        "item.quantity": 1,
         "item.price": package.price,
+        // "item.rating":package.rating
       });
 
       cart = await cart.save();
@@ -336,7 +340,7 @@ exports.addToCartPlatinum = async (req, res) => {
 };
 
 // @desc get myCart
-// @route get cart/myCart
+// @route get /cart
 // @acess Private
 exports.myCart = async (req, res) => {
   try {
@@ -399,10 +403,145 @@ exports.myCart = async (req, res) => {
   }
 };
 
-// @desc get Cart Of A User For Admin
-// @route  GET cart/cart/:id
+// @desc increase the package quantity to cart
+// @route PUT cart/increase
 // @acess Private
-exports.getCart = async (req, res) => {
+exports.deleteCart = async (req, res) => {
+  try {
+    const { body, user } = req;
+    const { error } = Joi.object()
+      .keys({
+        cartId: Joi.string().required(),
+        // serviceId: Joi.string().required(),
+        // packageId: Joi.string().required(),
+      })
+      .required()
+      .validate(body);
+    if (error) {
+      return res
+        .status(400)
+        .send({ success: false, error: error.details[0].message });
+    }
+    let matchQuery = {
+      $match: {
+        $and: [
+          { _id: mongoose.Types.ObjectId(body.cartId) },
+          { userId: mongoose.Types.ObjectId(user._id) },
+          // { "item.packageId": mongoose.Types.ObjectId(body.packageId) },
+        ],
+      },
+    };
+
+    let data = await Cart.aggregate([
+      {
+        $facet: {
+          totalData: [matchQuery],
+          totalCount: [matchQuery, { $count: "count" }],
+        },
+      },
+    ]);
+
+    let result = data[0].totalData;
+    let count = data[0].totalCount;
+
+    if (result.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message:
+          "No Result Found,May Be cartId or userId is invalid. Provide Correct details",
+      });
+    }
+
+    result = result[0];
+
+    result = await Cart.findByIdAndDelete(body.cartId);
+
+    if (!result) {
+      return res.status(500).send({ success: false, message: "Not Found" });
+    }
+    return res.status(200).send({
+      success: true,
+      message: "Deleted Successfully",
+      result,
+      count,
+    });
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+
+// *********************************ADMIN*************************************************************************************//
+// @desc get  All Cart For Admin
+// @route GET cart/admin
+// @acess Private
+exports.getCartsAdmin = async (req, res) => {
+  try {
+    let matchQuery = {
+      $match: {},
+    };
+
+    let data = await Cart.aggregate([
+      {
+        $facet: {
+          totalData: [
+            matchQuery,
+            { $project: { __v: 0 } },
+            {
+              $lookup: {
+                from: "services",
+                localField: "service",
+                foreignField: "_id",
+                as: "serviceData",
+              },
+            },
+
+            {
+              $lookup: {
+                from: "users",
+                localField: "userId",
+                foreignField: "_id",
+                as: "userData",
+              },
+            },
+          ],
+          totalCount: [matchQuery, { $count: "count" }],
+        },
+      },
+    ]);
+
+    let result = data[0].totalData;
+    let count = data[0].totalCount;
+
+    if (result.length === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No Result Found ",
+      });
+    }
+
+    return res.status(200).send({
+      success: true,
+      message: "User's Cart Fetched Successfully",
+      myCart: result,
+      count,
+    });
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+
+// @desc get Cart Of A User For Admin
+// @route  GET cart/:id
+// @acess Private
+exports.getCartAdmin = async (req, res) => {
   try {
     const { params } = req;
     let matchQuery = {
@@ -463,69 +602,7 @@ exports.getCart = async (req, res) => {
   }
 };
 
-// @desc get  All Cart For Admin
-// @route GET cart/carts
-// @acess Private
-exports.getCarts = async (req, res) => {
-  try {
-    let matchQuery = {
-      $match: {},
-    };
-
-    let data = await Cart.aggregate([
-      {
-        $facet: {
-          totalData: [
-            matchQuery,
-            { $project: { __v: 0 } },
-            {
-              $lookup: {
-                from: "services",
-                localField: "service",
-                foreignField: "_id",
-                as: "serviceData",
-              },
-            },
-
-            {
-              $lookup: {
-                from: "users",
-                localField: "userId",
-                foreignField: "_id",
-                as: "userData",
-              },
-            },
-          ],
-          totalCount: [matchQuery, { $count: "count" }],
-        },
-      },
-    ]);
-
-    let result = data[0].totalData;
-    let count = data[0].totalCount;
-
-    if (result.length === 0) {
-      return res.status(404).send({
-        success: false,
-        message: "No Result Found ",
-      });
-    }
-
-    return res.status(200).send({
-      success: true,
-      message: "User's Cart Fetched Successfully",
-      myCart: result[0],
-      count,
-    });
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      message: "Something went wrong",
-      error: e.message,
-    });
-  }
-};
-
+// **********************************NOT_IN_USE*************************************************************************//
 // @desc increase the package quantity to cart
 // @route PUT cart/increase
 // @acess Private
@@ -686,74 +763,3 @@ exports.decreaseQuantity = async (req, res) => {
     });
   }
 };
-
-// @desc increase the package quantity to cart
-// @route PUT cart/increase
-// @acess Private
-exports.deleteCart = async (req, res) => {
-  try {
-    const { body, user } = req;
-    const { error } = Joi.object()
-      .keys({
-        cartId: Joi.string().required(),
-        serviceId: Joi.string().required(),
-        packageId: Joi.string().required(),
-      })
-      .required()
-      .validate(body);
-    if (error) {
-      return res
-        .status(400)
-        .send({ success: false, error: error.details[0].message });
-    }
-    let matchQuery = {
-      $match: {
-        $and: [
-          { _id: mongoose.Types.ObjectId(body.cartId) },
-          { service: mongoose.Types.ObjectId(body.serviceId) },
-          { "item.packageId": mongoose.Types.ObjectId(body.packageId) },
-        ],
-      },
-    };
-
-    let data = await Cart.aggregate([
-      {
-        $facet: {
-          totalData: [matchQuery],
-          totalCount: [matchQuery, { $count: "count" }],
-        },
-      },
-    ]);
-
-    let result = data[0].totalData;
-    let count = data[0].totalCount;
-
-    if (result.length === 0) {
-      return res.status(404).send({
-        success: false,
-        message: "No Result Found",
-      });
-    }
-
-    result = result[0];
-
-    result = await Cart.findByIdAndDelete(body.cartId);
-
-    if (!result) {
-      return res.status(500).send({ success: false, message: "Not Found" });
-    }
-    return res.status(200).send({
-      success: true,
-      message: "Deleted Successfully",
-      result,
-      count,
-    });
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      message: "Something went wrong",
-      error: e.message,
-    });
-  }
-};
-

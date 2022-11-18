@@ -2,10 +2,10 @@ const crypto = require("crypto");
 var password = process.env["CRYPT_PASSWORD"];
 // var iv = 'kiamdksndn';
 var iv = crypto.randomBytes(16);
-console.log(Buffer.from(iv));
+// console.log(Buffer.from(iv));
 var iv = Buffer.from(iv);
 var ivstring = iv.toString("hex");
-console.log(ivstring);
+// console.log(ivstring);
 
 function sha1(input) {
   return crypto.createHash("sha1").update(input).digest();
