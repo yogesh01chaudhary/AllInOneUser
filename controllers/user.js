@@ -45,13 +45,14 @@ exports.verifyOTP = (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
     console.log(
-      process.env.OTP_API + "VERIFY/" + req.body.details + "/" + req.body.otp
+      process.env.OTP_API + "VERIFY3/" + req.body.phone + "/" + req.body.otp
     );
     axios
       .get(
-        process.env.OTP_API + "VERIFY/" + req.body.details + "/" + req.body.otp
+        process.env.OTP_API + "VERIFY3/" + req.body.phone + "/" + req.body.otp
       )
       .then(async (response) => {
+        console.log({response})
         if (response.data.Details === "OTP Matched") {
           const isAlreadyRegistered = await User.findOne({
             phone: req.body.phone,

@@ -18,6 +18,13 @@ const BookingSchema = new Schema({
       ref: "Service",
       required: true,
     },
+    description: {
+      type: String,
+    },
+    rating: {
+      type: Number,
+      default: 5,
+    },
     price: {
       type: Number,
     },

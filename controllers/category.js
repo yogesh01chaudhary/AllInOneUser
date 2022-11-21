@@ -1,4 +1,5 @@
 const Category = require("../models/category");
+const { Service } = require("../models/service");
 const SubCategory = require("../models/subCategory");
 const SubCategory2 = require("../models/subCategory2");
 //=============================================== get all detailed categories ===============================================//
@@ -95,3 +96,337 @@ exports.getSubCategory2Services = async (req, res) => {
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
+
+//***********************************************FOR-USERS*************************************************************************//
+//***************************************giveRatingAndUpdate*************************************************************************//
+exports.rateSilver = async (req, res) => {
+  try {
+    const { body } = req;
+    console.log(body);
+    const { error } = Joi.object()
+      .keys({
+        serviceId: Joi.string().required(),
+        userId: Joi.string().required(),
+        star: Joi.number(),
+      })
+      .required()
+      .validate(body);
+
+    if (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.details[0].message });
+    }
+
+    let service = await Service.findOneAndUpdate(
+      {
+        _id: body.serviceId,
+        "silver.rating.ratedBy": { $nin: body.userId },
+      },
+      {
+        $addToSet: {
+          "silver.rating": {
+            ratedBy: body.userId,
+            star: body.star,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    if (!service) {
+      return res.status(404).send({
+        success: true,
+        message: "No Data Found, Maybe User Already rated/ Service Not Exists",
+      });
+    }
+    return res.status(200).send({
+      success: true,
+      message: "User Rated Silver Successfully",
+      service,
+    });
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+
+exports.rateGold = async (req, res) => {
+  try {
+    const { body } = req;
+    console.log(body);
+    const { error } = Joi.object()
+      .keys({
+        serviceId: Joi.string().required(),
+        userId: Joi.string().required(),
+        star: Joi.number(),
+      })
+      .required()
+      .validate(body);
+
+    if (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.details[0].message });
+    }
+    let service = await Service.findOneAndUpdate(
+      {
+        _id: body.serviceId,
+        "gold.rating.ratedBy": { $nin: body.userId },
+      },
+      {
+        $addToSet: {
+          "gold.rating": {
+            ratedBy: body.userId,
+            star: body.star,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    console.log(service);
+    if (!service) {
+      return res.status(404).send({
+        success: true,
+        message: "No Data Found, Maybe User Already rated/ Service Not Exists",
+      });
+    }
+    return res.status(200).send({
+      success: true,
+      message: "User Rated  Gold Successfully",
+      service,
+    });
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+
+exports.ratePlatinum = async (req, res) => {
+  try {
+    const { body } = req;
+    console.log(body);
+    const { error } = Joi.object()
+      .keys({
+        serviceId: Joi.string().required(),
+        userId: Joi.string().required(),
+        star: Joi.number(),
+      })
+      .required()
+      .validate(body);
+
+    if (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.details[0].message });
+    }
+    let service = await Service.findOneAndUpdate(
+      {
+        _id: body.serviceId,
+        "platinum.rating.ratedBy": { $nin: body.userId },
+      },
+      {
+        $addToSet: {
+          "platinum.rating": {
+            ratedBy: body.userId,
+            star: body.star,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    console.log(service);
+    if (!service) {
+      return res.status(404).send({
+        success: true,
+        message: "No Data Found, Maybe User Already rated/ Service Not Exists",
+      });
+    }
+    return res.status(200).send({
+      success: true,
+      message: "User Rated Platinum Successfully",
+      service,
+    });
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+
+exports.updateRateSilver = async (req, res) => {
+  try {
+    const { body } = req;
+    console.log(body);
+    const { error } = Joi.object()
+      .keys({
+        serviceId: Joi.string().required(),
+        userId: Joi.string().required(),
+        star: Joi.number(),
+      })
+      .required()
+      .validate(body);
+
+    if (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.details[0].message });
+    }
+
+    let service = await Service.findOneAndUpdate(
+      {
+        _id: body.serviceId,
+        "silver.rating.ratedBy": { $eq: body.userId },
+      },
+      {
+        $set: {
+          "silver.rating.$": {
+            ratedBy: body.userId,
+            star: body.star,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    console.log(service);
+    if (!service) {
+      return res.status(404).send({
+        success: true,
+        message: "No Service Found/ MayBe User Not Rated",
+      });
+    }
+    return res.status(200).send({
+      success: true,
+      message: "User Rated Successfully",
+      service,
+    });
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+
+exports.updateRateGold = async (req, res) => {
+  try {
+    const { body } = req;
+    console.log(body);
+    const { error } = Joi.object()
+      .keys({
+        serviceId: Joi.string().required(),
+        userId: Joi.string().required(),
+        star: Joi.number(),
+      })
+      .required()
+      .validate(body);
+
+    if (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.details[0].message });
+    }
+    let service = await Service.findOneAndUpdate(
+      {
+        _id: body.serviceId,
+        "gold.rating.ratedBy": { $in: body.userId },
+      },
+
+      {
+        $set: {
+          "gold.rating.$": {
+            ratedBy: body.userId,
+            star: body.star,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    // console.log(service);
+    if (!service) {
+      return res
+        .status(404)
+        .send({ success: true, message: "No Service Found" });
+    }
+    return res.status(200).send({
+      success: true,
+      message: "User Rated Successfully",
+      service,
+    });
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+
+exports.updateRatePlatinum = async (req, res) => {
+  try {
+    const { body } = req;
+    console.log(body);
+    const { error } = Joi.object()
+      .keys({
+        serviceId: Joi.string().required(),
+        userId: Joi.string().required(),
+        star: Joi.number(),
+      })
+      .required()
+      .validate(body);
+
+    if (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.details[0].message });
+    }
+    let service = await Service.findOneAndUpdate(
+      {
+        _id: body.serviceId,
+        "platinum.rating.ratedBy": { $nin: body.userId },
+      },
+
+      {
+        $set: {
+          "platinum.rating.$": {
+            ratedBy: body.userId,
+            star: body.star,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    console.log(service);
+    if (!service) {
+      return res
+        .status(404)
+        .send({ success: true, message: "No Service Found" });
+    }
+    return res.status(200).send({
+      success: true,
+      message: "User Rated Successfully",
+      service,
+    });
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+

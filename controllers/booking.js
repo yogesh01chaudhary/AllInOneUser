@@ -160,6 +160,7 @@ exports.getBookingsUser = async (req, res) => {
     });
   }
 };
+
 // @desc see booking using bookingId
 // @route GET /:bookingId
 // @acess Private USER
@@ -223,138 +224,6 @@ exports.getBookingUser = async (req, res) => {
         message:
           "No Data Found, May be Invalid UserId or BookingId Or Booking Doesn't Belongs To this User",
       });
-    }
-    result = result[0];
-
-    return res.status(200).send({
-      success: true,
-      message: "Bookings Fetched Successfully",
-      result,
-      count,
-    });
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      message: "Something went wrong",
-      error: e.message,
-    });
-  }
-};
-
-// **************************************ADMIN*****************************************************************************//
-// @desc see AllBooking
-// @route GET /booking/admin
-// @acess Private ADMIN
-exports.getBookingsAdmin = async (req, res) => {
-  try {
-    let matchQuery = {
-      $match: {},
-    };
-
-    let data = await Booking.aggregate([
-      {
-        $facet: {
-          totalData: [
-            matchQuery,
-            { $project: { __v: 0 } },
-            {
-              $lookup: {
-                from: "users",
-                localField: "userId",
-                foreignField: "_id",
-                as: "userData",
-              },
-            },
-            {
-              $lookup: {
-                from: "services",
-                localField: "service",
-                foreignField: "_id",
-                as: "serviceData",
-              },
-            },
-          ],
-          totalCount: [matchQuery, { $count: "count" }],
-        },
-      },
-    ]);
-
-    let result = data[0].totalData;
-    let count = data[0].totalCount;
-
-    if (result.length === 0) {
-      return res.status(200).send({ success: false, message: "No Data Found" });
-    }
-
-    return res.status(200).send({
-      success: true,
-      message: "Bookings Fetched Successfully",
-      result,
-      count,
-    });
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      message: "Something went wrong",
-      error: e.message,
-    });
-  }
-};
-
-// @desc see booking using bookingId
-// @route GET /booking/admin/:bookingId
-// @acess Private ADMIN
-exports.getBookingAdmin = async (req, res) => {
-  try {
-    const { params } = req;
-    const { error } = Joi.object()
-      .keys({
-        bookingId: Joi.string().required(),
-      })
-      .required()
-      .validate(params);
-    if (error) {
-      return res
-        .status(400)
-        .send({ success: false, error: error.details[0].message });
-    }
-    let matchQuery = {
-      $match: { _id: mongoose.Types.ObjectId(params.bookingId) },
-    };
-
-    let data = await Booking.aggregate([
-      {
-        $facet: {
-          totalData: [
-            matchQuery,
-            { $project: { __v: 0 } },
-            {
-              $lookup: {
-                from: "users",
-                localField: "userId",
-                foreignField: "_id",
-                as: "userData",
-              },
-            },
-            {
-              $lookup: {
-                from: "services",
-                localField: "service",
-                foreignField: "_id",
-                as: "serviceData",
-              },
-            },
-          ],
-          totalCount: [matchQuery, { $count: "count" }],
-        },
-      },
-    ]);
-
-    let result = data[0].totalData;
-    let count = data[0].totalCount;
-
-    if (result.length === 0) {
-      return res.status(200).send({ success: false, message: "No Data Found" });
     }
     result = result[0];
 

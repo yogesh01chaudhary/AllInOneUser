@@ -9,7 +9,7 @@ exports.phoneSchema = Joi.object()
 
 exports.otpSchema = Joi.object()
   .keys({
-    details: Joi.string().required(),
+    // details: Joi.string().required(),
     otp: Joi.number().max(999999).required(),
     phone: Joi.string()
       .regex(/^[6-9]{1}[0-9]{9}$/)

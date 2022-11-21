@@ -12,10 +12,6 @@ const {
 const { verifyToken } = require("../middlewares/auth");
 const router = express.Router();
 
-//ADMIN
-router.get("/admin", getBookingsAdmin);
-router.get("/admin/:bookingId", getBookingAdmin);
-
 //USER
 router.post("/", verifyToken, addBooking);
 router.get("/",verifyToken, getBookingsUser);
