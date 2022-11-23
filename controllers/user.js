@@ -237,7 +237,7 @@ exports.changePhone = (req, res) => {
     }
     axios
       .get(
-        process.env.OTP_API + "VERIFY/" + req.body.details + "/" + req.body.otp
+        process.env.OTP_API + "VERIFY3/" + req.body.phone + "/" + req.body.otp
       )
       .then(async (response) => {
         if (response.data.Details === "OTP Matched") {

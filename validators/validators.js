@@ -9,7 +9,6 @@ exports.phoneSchema = Joi.object()
 
 exports.otpSchema = Joi.object()
   .keys({
-    // details: Joi.string().required(),
     otp: Joi.number().max(999999).required(),
     phone: Joi.string()
       .regex(/^[6-9]{1}[0-9]{9}$/)
@@ -24,7 +23,6 @@ exports.profileSchema = Joi.object()
     gender: Joi.string().valid("male", "female").required(),
     city: Joi.string().required(),
     pincode: Joi.number().min(100000).max(999999).required(),
-    email: Joi.string().email().required(),
   })
   .required();
 exports.emailSchema = Joi.object()

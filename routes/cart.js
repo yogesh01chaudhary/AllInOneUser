@@ -5,8 +5,6 @@ const {
   addToCartPlatinum,
   myCart,
   deleteCart,
-  getCartAdmin,
-  getCartsAdmin,
   increaseQuantity,
   decreaseQuantity,
 } = require("../controllers/cart");
@@ -18,7 +16,7 @@ router.post("/silver", verifyToken, addToCartSilver);
 router.post("/gold", verifyToken, addToCartGold);
 router.post("/platinum", verifyToken, addToCartPlatinum);
 router.get("/", verifyToken, myCart);
-router.delete("/cart", verifyToken, deleteCart);
+router.delete("/", verifyToken, deleteCart);
 
 //NOT_IN_USE
 router.put("/increase", verifyToken, increaseQuantity);

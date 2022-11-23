@@ -10,7 +10,7 @@ router.put("/profile", verifyToken, user.updateProfile);
 router.put("/coordinates", verifyToken, user.updateCoordinates);
 router.put("/phone", verifyToken, user.changePhone);
 router.get("/profile", verifyToken, user.getMyProfile);
-router.post("/sendMail", verifyToken, user.sendMailOTP);
+router.put("/sendMail", verifyToken, user.sendMailOTP);
 router.post("/verifyMailOTP", verifyToken, user.verifyMailOTP);
 router.post("/profilePicture", verifyToken, upload, user.uploadProfilePicture);
 router.put("/profilePicture", verifyToken, upload, user.updateProfilePicture);

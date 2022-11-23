@@ -3,8 +3,7 @@ const {
   addBooking,
   getBookingUser,
   getBookingsUser,
-  getBookingAdmin,
-  getBookingsAdmin,
+  cancelBooking,
   payment,
   checkout,
   paymentVerify,
@@ -16,6 +15,7 @@ const router = express.Router();
 router.post("/", verifyToken, addBooking);
 router.get("/",verifyToken, getBookingsUser);
 router.get("/:bookingId",verifyToken, getBookingUser);
+router.put("/cancel",verifyToken, cancelBooking);
 
 //PAYMENT
 router.post("/payment", verifyToken, payment);

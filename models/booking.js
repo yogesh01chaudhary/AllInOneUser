@@ -1,5 +1,4 @@
 const User = require("./user");
-const { Service } = require("./service");
 const { Schema, model } = require("mongoose");
 const BookingSchema = new Schema({
   userId: {
@@ -9,13 +8,12 @@ const BookingSchema = new Schema({
   },
   service: {
     type: Schema.Types.ObjectId,
-    ref: Service,
+    ref: "service",
   },
-
   item: {
     packageId: {
       type: Schema.Types.ObjectId,
-      ref: "Service",
+      ref: "service",
       required: true,
     },
     description: {
@@ -32,10 +30,6 @@ const BookingSchema = new Schema({
   total: {
     type: Number,
   },
-  vendor: {
-    type: Schema.Types.ObjectId,
-    ref: "Vendor",
-  },
   timeSlot: {
     start: {
       type: String,
@@ -43,6 +37,19 @@ const BookingSchema = new Schema({
     end: {
       type: String,
     },
+    bookingDate: {
+      type: String,
+    },
+  },
+  vendor: {
+    type: Schema.Types.ObjectId,
+    ref: "Vendor",
+  },
+  startTime: {
+    type: String,
+  },
+  endTime: {
+    type: String,
   },
   bookingStatus: {
     type: String,

@@ -4,6 +4,7 @@ const Cart = require("../models/cart");
 const Booking = require("../models/booking");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
 // **************************************USER*****************************************************************************//
 // @desc add Booking
@@ -19,6 +20,7 @@ exports.addBooking = async (req, res) => {
         cartId: Joi.string().required(),
         start: Joi.string().required(),
         end: Joi.string().required(),
+        bookingDate:Joi.string().required(),
         payby: Joi.string().required(),
       })
       .required()
@@ -67,6 +69,7 @@ exports.addBooking = async (req, res) => {
       "item.description": userCartService.description,
       "timeSlot.start": body.start,
       "timeSlot.end": body.end,
+      "timeSlot.bookingDate":body.bookingDate,
       total: userCartService.item.price * 100,
       payby: body.payby,
     };
@@ -235,6 +238,121 @@ exports.getBookingUser = async (req, res) => {
     });
   } catch (e) {
     return res.status(500).send({
+      success: false,
+      message: "Something went wrong",
+      error: e.message,
+    });
+  }
+};
+
+//@desc admin send booking to nearbyvendors and vendor will confirm the booking
+//@route PUT vendor/complete
+//@access Private
+exports.cancelBooking = async (req, res) => {
+  try {
+    const { body, user } = req;
+    const { error } = Joi.object()
+      .keys({
+        bookingId: Joi.string().required(),
+      })
+      .required()
+      .validate(body);
+    if (error) {
+      return res
+        .status(400)
+        .send({ success: false, message: error.details[0].message });
+    }
+    let matchQuery = {
+      $match: {
+        $and: [
+          { _id: mongoose.Types.ObjectId(body.bookingId) },
+          {
+            $or: [ { bookingStatus: "Confirmed" },{ bookingStatus: "Pending" }],
+          },
+          { userId: mongoose.Types.ObjectId(user._id) },
+        ],
+      },
+    };
+
+    let data = await Booking.aggregate([
+      {
+        $facet: {
+          totalData: [
+            matchQuery,
+            { $project: { __v: 0 } },
+            {
+              $lookup: {
+                from: "users",
+                localField: "userId",
+                foreignField: "_id",
+                as: "userData",
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    let result = data[0].totalData;
+
+    if (result.length === 0) {
+      return res.status(404).send({ success: false, message: "No Data Found" });
+    }
+    result = result[0];
+    if (!result.userData[0].email && !result.userData[0].phone) {
+      return res
+        .status(400)
+        .send({ success: false, mesage: "User Mail Id Or Phone Is Required" });
+    }
+
+    let booking = await Booking.findByIdAndUpdate(
+      body.bookingId,
+      {
+        bookingStatus: "Cancelled",
+      },
+      { new: true }
+    );
+
+    // send mail or sms to user to let him know that his booking is confirmed
+    let transporter = await nodemailer.createTransport({
+      service: process.env.SERVICE,
+      host: process.env.HOST,
+      port: process.env.PORTMAIL,
+      secure: false,
+      auth: {
+        user: process.env.USER,
+        pass: process.env.PASSWORD,
+      },
+    });
+
+    const mailResponse = await transporter.sendMail({
+      from: `"Yogesh Chaudhary" <${process.env.USER}>`,
+      to: `${result.userData[0].email}`,
+      subject: `OrderID ${body.bookingId} Status`,
+      text:
+        `Dear User, \n\n` +
+        `Your booking having booking id ${body.bookingId} is cancelled. \n\n` +
+        "This is an auto-generated email. Please do not reply to this email.\n\n" +
+        "Regards\n" +
+        "Yogesh Chaudhary\n\n",
+    });
+
+    if (!mailResponse) {
+      return res
+        .status(400)
+        .send({ success: true, message: "Something went wrong" });
+    }
+    if (mailResponse.accepted.length === 0) {
+      return res.status(400).send({ success: false, mailResponse });
+    }
+    return res.status(200).send({
+      success: true,
+      message: "Booking Cancelled",
+      booking,
+      mailResponse,
+    });
+  } catch (e) {
+    return res.status(400).send({
       success: false,
       message: "Something went wrong",
       error: e.message,
