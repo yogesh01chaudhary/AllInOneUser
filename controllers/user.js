@@ -14,6 +14,7 @@ const s3 = new AWS.S3({
 });
 const { geocoder } = require("../helpers/geoCoder");
 const Joi = require("joi/lib");
+
 //================================================= phone login ==============================================//
 exports.phoneLogin = (req, res) => {
   try {
@@ -37,6 +38,7 @@ exports.phoneLogin = (req, res) => {
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 //=================================================== verify otp ===============================================//
 exports.verifyOTP = (req, res) => {
   try {
@@ -52,7 +54,7 @@ exports.verifyOTP = (req, res) => {
         process.env.OTP_API + "VERIFY3/" + req.body.phone + "/" + req.body.otp
       )
       .then(async (response) => {
-        console.log({response})
+        console.log({ response });
         if (response.data.Details === "OTP Matched") {
           const isAlreadyRegistered = await User.findOne({
             phone: req.body.phone,
@@ -149,6 +151,7 @@ exports.verifyOTP = (req, res) => {
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 //================================================ update profile ===============================================//
 exports.updateProfile = async (req, res) => {
   try {
@@ -168,10 +171,14 @@ exports.updateProfile = async (req, res) => {
       coordinates: [longitude, latitude],
     };
 
-    const update = await User.findByIdAndUpdate(req.user._id, {
-      ...req.body,
-      location,
-    });
+    const update = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        ...req.body,
+        location,
+      },
+      { new: true }
+    );
     if (update) {
       return res
         .status(200)
@@ -184,6 +191,7 @@ exports.updateProfile = async (req, res) => {
       .json({ message: "Something went wrong", error: e.message });
   }
 };
+
 //=================================================== update coordinates ========================================//
 exports.updateCoordinates = async (req, res) => {
   try {
@@ -218,13 +226,11 @@ exports.updateCoordinates = async (req, res) => {
       result,
     });
   } catch (e) {
-    return res
-      .status(500)
-      .send({
-        success: false,
-        message: "Something went wong",
-        error: e.message,
-      });
+    return res.status(500).send({
+      success: false,
+      message: "Something went wong",
+      error: e.message,
+    });
   }
 };
 
@@ -261,6 +267,7 @@ exports.changePhone = (req, res) => {
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 //============================================= get my profile =======================================================//
 exports.getMyProfile = async (req, res) => {
   try {
@@ -273,6 +280,7 @@ exports.getMyProfile = async (req, res) => {
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 //========================================= send otp to mail =======================================================//
 exports.sendMailOTP = async (req, res) => {
   try {
@@ -319,6 +327,7 @@ exports.sendMailOTP = async (req, res) => {
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 //======================================= verify email otp =================================================//
 exports.verifyMailOTP = async (req, res) => {
   try {
@@ -347,6 +356,7 @@ exports.verifyMailOTP = async (req, res) => {
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 //==================================== upload profile picture =============================================//
 exports.uploadProfilePicture = async (req, res) => {
   try {
@@ -379,6 +389,7 @@ exports.uploadProfilePicture = async (req, res) => {
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 //===================================== update profile picture =========================================//
 exports.updateProfilePicture = async (req, res) => {
   try {
@@ -448,6 +459,7 @@ exports.updateProfilePicture = async (req, res) => {
     return res.status(500).send({ message: e.name });
   }
 };
+
 //=================================== refresh token ================================================//
 exports.refreshToken = async (req, res) => {
   try {
