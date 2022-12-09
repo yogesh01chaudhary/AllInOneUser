@@ -22,13 +22,11 @@ exports.phoneLogin = (req, res) => {
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
     }
-    console.log(process.env.OTP_API + req.body.phone + "/AUTOGEN");
     axios
       .get(process.env.OTP_API + req.body.phone + "/AUTOGEN")
       .then((response) => {
         return res.status(200).json({
           message: "OTP sent successfully",
-          details: response.data.Details,
         });
       })
       .catch((er) => {
@@ -46,15 +44,11 @@ exports.verifyOTP = (req, res) => {
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
     }
-    console.log(
-      process.env.OTP_API + "VERIFY3/" + req.body.phone + "/" + req.body.otp
-    );
     axios
       .get(
         process.env.OTP_API + "VERIFY3/" + req.body.phone + "/" + req.body.otp
       )
       .then(async (response) => {
-        console.log({ response });
         if (response.data.Details === "OTP Matched") {
           const isAlreadyRegistered = await User.findOne({
             phone: req.body.phone,
@@ -141,6 +135,8 @@ exports.verifyOTP = (req, res) => {
           return res.status(500).json({ message: "Something bad happened" });
         } else if (response.data.Details === "OTP Expired") {
           return res.status(403).json({ message: "OTP Expired" });
+        } else if (response.data.Details === "OTP Mismatch") {
+          return res.status(403).json({ message: "OTP Mismatch" });
         }
         return res.status(500).json({ message: "Something went wrong 1" });
       })
@@ -180,9 +176,7 @@ exports.updateProfile = async (req, res) => {
       { new: true }
     );
     if (update) {
-      return res
-        .status(200)
-        .json({ message: "Updated profile successfully", data: update });
+      return res.status(200).json({ message: "Profile Updated successfully" });
     }
     return res.status(500).json({ message: "Something went wrong" });
   } catch (e) {
@@ -223,7 +217,7 @@ exports.updateCoordinates = async (req, res) => {
     return res.status(200).send({
       success: true,
       message: "User coordinates Updated Successfully",
-      result,
+      result: result.location,
     });
   } catch (e) {
     return res.status(500).send({
@@ -486,5 +480,146 @@ exports.refreshToken = async (req, res) => {
       .json({ refreshToken: newRefreshToken, token: token });
   } catch (e) {
     return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+
+//@desc get s3Url fro newOne and for update image check in DB imageUrl
+//@route GET/vendor/s3Url1
+//@access Private
+exports.s3Url = async (req, res) => {
+  try {
+    const s3 = new AWS.S3({
+      accessKeyId: process.env.AWS_ID,
+      secretAccessKey: process.env.AWS_SECRET,
+    });
+    console.log(s3,req.user)
+    const { _id } = req.user;
+    let user = await User.findById(_id);
+    if (!user) {
+      return res
+        .status(404)
+        .send({ success: false, message: "User Doesn't Exists" });
+    }
+    if (!user.imageUrl) {
+      const key = `${_id}/${uuidv4()}.jpeg`;
+      const url = await s3.getSignedUrlPromise("putObject", {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        ContentType: "image/jpeg",
+        Key: key,
+        Expires: 120,
+      });
+      return res.status(200).send({
+        success: true,
+        message: "Url generated , imageUrl doesn't exists in DB",
+        url,
+        key,
+      });
+    }
+
+    let fileName = user.imageUrl.split("/");
+    fileName =
+      fileName[fileName.length - 2] + "/" + fileName[fileName.length - 1];
+    const key = `${fileName}`;
+    const url = await s3.getSignedUrlPromise("putObject", {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      ContentType: "image/jpeg",
+      Key: key,
+      Expires: 60,
+    });
+    return res
+      .status(200)
+      .send({ success: true, message: "Url generated", url, key });
+  } catch (e) {
+    res.status(500).send({ success: false, message: e.message });
+  }
+};
+
+//@desc Upload imageUrl in DB using  S3
+//@route PUT/vendor/imageUrl
+//@access Private
+exports.updateImageUrl = async (req, res) => {
+  try {
+    const { user, body } = req;
+    Joi.object()
+      .keys({
+        body: Joi.object().keys({
+          imageUrl: Joi.string().required(),
+        }),
+        user: Joi.object().keys({
+          _id: Joi.string().required(),
+        }),
+      })
+      .required()
+      .validate(req);
+    let userData = await User.findByIdAndUpdate(
+      user._id,
+      { imageUrl: body.imageUrl },
+      { new: true }
+    );
+    if (!userData) {
+      return res
+        .status(404)
+        .send({ success: false, message: "User Doesn't Exists" });
+    }
+    return res
+      .status(200)
+      .send({ success: true, message: "Image Url Updated", imageurl:userData.imageUrl});
+  } catch (e) {
+    res.status(500).send({ success: false, message: e.message });
+  }
+};
+
+//@desc delete image from s3 Bucket and DB
+//@route DELETE vendor/imageUrl
+//@access Private
+exports.deleteImageUrl = async (req, res) => {
+  try {
+    const { _id } = req.user;
+
+    const s3 = new AWS.S3({
+      accessKeyId: process.env.AWS_ID,
+      secretAccessKey: process.env.AWS_SECRET,
+    });
+
+    let fileName = req.body.imageUrl.split("/");
+    fileName =
+      fileName[fileName.length - 2] + "/" + fileName[fileName.length - 1];
+    const key = `${fileName}`;
+    var params = { Bucket: process.env.AWS_BUCKET_NAME, Key: key };
+    let user = await User.findById(_id);
+
+    if (!user) {
+      return res
+        .status(404)
+        .send({ success: false, message: "User Doesn't Exists" });
+    }
+
+    if (user.imageUrl !== req.body.imageUrl) {
+      return res.status(400).send({
+        success: false,
+        message:
+          "Can't be deleted imageUrl doesn't match with User's imageUrl",
+      });
+    }
+
+    s3.deleteObject(params, async (err) => {
+      if (err)
+        return res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          error: err.message,
+        });
+        await User.findByIdAndUpdate(
+        _id,
+        { imageUrl: "" },
+        { new: true }
+      );
+      return res
+        .status(200)
+        .send({ success: true, message: "Successfully Deleted" });
+    });
+  } catch (e) {
+    res.status(500).send({ success: false, message: e.message });
   }
 };

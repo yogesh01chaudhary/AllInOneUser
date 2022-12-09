@@ -15,4 +15,8 @@ router.post("/verifyMailOTP", verifyToken, user.verifyMailOTP);
 router.post("/profilePicture", verifyToken, upload, user.uploadProfilePicture);
 router.put("/profilePicture", verifyToken, upload, user.updateProfilePicture);
 router.post("/refreshToken", user.refreshToken);
+
+router.get("/s3Url", verifyToken, user.s3Url);
+router.put("/imageUrl", verifyToken, user.updateImageUrl);
+router.delete("/imageUrl", verifyToken, user.deleteImageUrl);
 module.exports = router;
