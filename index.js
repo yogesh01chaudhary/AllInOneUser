@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const allRoutes = require("./routes/index");
 const cors = require("cors");
 app.use(express.json());
-app.use(allRoutes);
+app.use("/user",allRoutes);
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => console.log("Connected to database successfully"))
