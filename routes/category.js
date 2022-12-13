@@ -15,4 +15,6 @@ router.post("/ratePlatinum", category.ratePlatinum);
 router.put("/rateSilver", category.updateRateSilver);
 router.put("/rateGold", category.updateRateGold);
 router.put("/ratePlatinum", category.updateRatePlatinum);
+
+router.post("/review",verifyToken, category.review);
 module.exports = router;
