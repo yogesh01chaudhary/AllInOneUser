@@ -120,13 +120,11 @@ exports.deleteReview = async (req, res) => {
     })
     .required()
     .validate(params);
-  console.log(error);
   if (error) {
     return res
       .status(400)
       .send({ success: false, message: error.details[0].message });
   }
-
   try {
     let vendor = await Vendor.findById(params.id);
     if (!vendor) {
@@ -157,12 +155,30 @@ exports.deleteReview = async (req, res) => {
         },
         { new: true, session }
       );
-      if (!vendor) {
-        return res
-          .status(404)
-          .send({ success: false, message: "No Data Found" });
-      }
       let review = vendor.reviews;
+      if (review.length == 0) {
+        vendor = await Vendor.findOneAndUpdate(
+          {
+            _id: req.params.id,
+          },
+          {
+            $set: {
+              rating: 0,
+              reviewNumber: 0,
+            },
+          },
+          { new: true, session }
+        );
+        await session.commitTransaction();
+        await session.endSession();
+        return res.status(400).json({
+          success: true,
+          message: "User Reviewed Deleted Successfully",
+          rating: vendor.rating,
+          reviews: vendor.reviews,
+          reviewNumber: vendor.reviewNumber,
+        });
+      }
       vendor = await Vendor.findOneAndUpdate(
         {
           _id: req.params.id,

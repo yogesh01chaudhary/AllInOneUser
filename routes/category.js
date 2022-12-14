@@ -8,6 +8,11 @@ router.get("/categoryService/:id", category.getCategoryServices);
 router.get("/subcategoryService/:id", category.getSubCategoryServices);
 router.get("/subcategory2Service/:id", category.getSubCategory2Services);
 
+//rate_comment_package
+router.post("/review",verifyToken, category.review);
+router.delete("/review",verifyToken, category.deleteReview);
+
+//EXTRA
 //user rate service
 router.post("/rateSilver", category.rateSilver);
 router.post("/rateGold", category.rateGold);
@@ -16,5 +21,4 @@ router.put("/rateSilver", category.updateRateSilver);
 router.put("/rateGold", category.updateRateGold);
 router.put("/ratePlatinum", category.updateRatePlatinum);
 
-router.post("/review",verifyToken, category.review);
 module.exports = router;
