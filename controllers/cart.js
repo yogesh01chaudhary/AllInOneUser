@@ -68,7 +68,7 @@ exports.addToCartSilver = async (req, res) => {
         "item.description": package.description,
         "item.packageId": package._id,
         "item.price": package.price,
-        // "item.rating":package.rating
+        "item.rating":package.overallRating
       });
 
       cart = await cart.save();
@@ -179,7 +179,7 @@ exports.addToCartGold = async (req, res) => {
         "item.description": package.description,
         "item.packageId": package._id,
         "item.price": package.price,
-        // "item.rating":package.rating
+        "item.rating":package.overallRating
       });
 
       cart = await cart.save();
@@ -290,7 +290,7 @@ exports.addToCartPlatinum = async (req, res) => {
         "item.description": package.description,
         "item.packageId": package._id,
         "item.price": package.price,
-        // "item.rating":package.rating
+        "item.rating":package.overallRating
       });
 
       cart = await cart.save();
