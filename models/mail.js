@@ -8,6 +8,10 @@ const mailSchema = new Schema({
     type: String,
     required: true,
   },
-  createdAt: { type: Date, expires: "2m", default: Date.now },
+  createdAt: {
+    type: Date,
+    expires: `${process.env.MAIL_OTP_EXPIRY}`,
+    default: Date.now,
+  },
 });
 module.exports = model("mail", mailSchema);
