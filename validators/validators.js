@@ -21,7 +21,9 @@ exports.profileSchema = Joi.object()
     lastName: Joi.string().min(3).required(),
     dateOfBirth: Joi.date().less("now").required(),
     gender: Joi.string().valid("male", "female").required(),
+    address: Joi.string().required(),
     city: Joi.string().required(),
+    state:Joi.string().required(),
     pincode: Joi.number().min(100000).max(999999).required(),
   })
   .required();

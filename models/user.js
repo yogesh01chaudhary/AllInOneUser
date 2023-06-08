@@ -12,6 +12,12 @@ const UserSchema = new Schema({
   gender: {
     type: String,
   },
+  address: {
+    type: String,
+  },
+  state: {
+    type: String,
+  },
   city: {
     type: String,
   },
@@ -25,8 +31,8 @@ const UserSchema = new Schema({
     type: String,
     required: true,
   },
-  imageUrl:{
-    type:String
+  imageUrl: {
+    type: String,
   },
   location: {
     type: {
